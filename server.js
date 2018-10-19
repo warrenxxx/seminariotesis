@@ -2,7 +2,7 @@
 var express = require('express'),
     app     = express(),
     morgan  = require('morgan');
-    
+
 Object.assign=require('object-assign')
 
 app.engine('html', require('ejs').renderFile);
@@ -24,7 +24,7 @@ if (mongoURL == null) {
     mongoPassword = process.env[mongoServiceName + '_PASSWORD'];
     mongoUser = process.env[mongoServiceName + '_USER'];
 
-  // If using env vars from secret from service binding  
+  // If using env vars from secret from service binding
   } else if (process.env.database_name) {
     mongoDatabase = process.env.database_name;
     mongoPassword = process.env.password;
@@ -52,6 +52,8 @@ if (mongoURL == null) {
 var db = null,
     dbDetails = new Object();
 
+mongoURL="mongodb://warren:warren@cluster0-shard-00-00-pvnfj.mongodb.net:27017,cluster0-shard-00-01-pvnfj.mongodb.net:27017,cluster0-shard-00-02-pvnfj.mongodb.net:27017/tesis?ssl=true&replicaSet=Cluster0-shard-0&authSource=admin&retryWrites=true";
+
 var initDb = function(callback) {
   if (mongoURL == null) return;
 
@@ -72,29 +74,77 @@ var initDb = function(callback) {
     console.log('Connected to MongoDB at: %s', mongoURL);
   });
 };
-
-app.get('/', function (req, res) {
+app.use(function(req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+});
+app.get('/registrar/:codigo/:tesis', function (req, res) {
   // try to initialize the db on every request if it's not already
   // initialized.
   if (!db) {
     initDb(function(err){});
   }
   if (db) {
-    var col = db.collection('counts');
-    // Create a document with request IP and current time of request
-    col.insert({ip: req.ip, date: Date.now()});
-    col.count(function(err, count){
-      if (err) {
-        console.log('Error running count. Message:\n'+err);
-      }
-      res.render('index.html', { pageCountMessage : count, dbInfo: dbDetails });
-    });
-  } else {
-    res.render('index.html', { pageCountMessage : null});
-  }
-});
+    var col = db.collection('tesis');
 
-app.get('/pagecount', function (req, res) {
+    col.findOne({cod:req.params.codigo},function (err, data) {
+        if(data) {
+            col.findOne({tesis:req.params.tesis},function (errr,data) {
+                if(data)
+                    res.status(404).send("La tesis ya fue registrada")
+                else {
+                    console.log(data)
+                    col.updateOne({cod:req.params.codigo},{$set:    {tesis:req.params.tesis}},function (err, data) {
+                        if(err)throw err;
+                        res.send({res:"oks"})
+                    })
+                }
+            })
+        }
+        else res.status(404).send("No existe el user")
+    });
+  }
+
+});
+app.get('/registrados', function (req, res) {
+    // try to initialize the db on every request if it's not already
+    // initialized.
+    if (!db) {
+        initDb(function(err){});
+    }
+    if (db) {
+        var col = db.collection('tesis');
+
+        col.find({}).toArray(function (err, data)    {
+            ress=[]
+            for(let x  of data){
+                if(x["tesis"]){
+                    console.log(x)
+                    ress.push(x["tesis"])
+                }
+            }
+            res.send(ress)
+        });
+    }
+
+});
+app.get('/all', function (req, res) {
+    // try to initialize the db on every request if it's not already
+    // initialized.
+    if (!db) {
+        initDb(function(err){});
+    }
+    if (db) {
+        var col = db.collection('tesis');
+
+        col.find({}).toArray(function (err, data)    {
+            res.send(data)
+        });
+    }
+
+});
+app.get('/usadas', function (req, res) {
   // try to initialize the db on every request if it's not already
   // initialized.
   if (!db) {
