@@ -2,12 +2,15 @@
 var express = require('express'),
     app     = express(),
     morgan  = require('morgan');
-
+var bodyParser = require('body-parser')
 Object.assign=require('object-assign')
 
 app.engine('html', require('ejs').renderFile);
 app.use(morgan('combined'))
+app.use(bodyParser.urlencoded({ extended: false }))
 
+// parse application/json
+app.use(bodyParser.json())
 var port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080,
     ip   = process.env.IP   || process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0',
     mongoURL = process.env.OPENSHIFT_MONGODB_DB_URL || process.env.MONGO_URL,
@@ -107,6 +110,26 @@ app.get('/registrar/:codigo/:tesis', function (req, res) {
   }
 
 });
+app.post('/formulario/:codigo',function (req, res) {
+    if (!db) {
+        initDb(function(err){});
+    }
+    if (db) {
+
+        var body=req.body;
+        var col = db.collection('tesis');
+        col.findOne({cod:req.params.codigo},function (err,data) {
+            if(data)
+                col.updateOne({cod:req.params.codigo},{$push:{form:body}},function (err, data) {
+                    if (err)throw err;
+                    res.send({res:"oks"})
+                })
+            else res.status(404).send("No existe el user")
+        })
+
+    }
+});
+
 app.get('/registrados', function (req, res) {
     // try to initialize the db on every request if it's not already
     // initialized.
