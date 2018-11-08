@@ -55,8 +55,8 @@ if (mongoURL == null) {
 var db = null,
     dbDetails = new Object();
 
-mongoURL="mongodb://warren:warren@cluster0-shard-00-00-pvnfj.mongodb.net:27017,cluster0-shard-00-01-pvnfj.mongodb.net:27017,cluster0-shard-00-02-pvnfj.mongodb.net:27017/tesis?ssl=true&replicaSet=Cluster0-shard-0&authSource=admin&retryWrites=true";
-
+// mongoURL="mongodb://warren:warren@cluster0-shard-00-00-pvnfj.mongodb.net:27017,cluster0-shard-00-01-pvnfj.mongodb.net:27017,cluster0-shard-00-02-pvnfj.mongodb.net:27017/tesis?ssl=true&replicaSet=Cluster0-shard-0&authSource=admin&retryWrites=true";
+mongoURL="mongodb://localhost:27017/tesis"
 var initDb = function(callback) {
   if (mongoURL == null) return;
 
@@ -124,6 +124,44 @@ app.post('/formulario/:codigo',function (req, res) {
                     if (err)throw err;
                     res.send({res:"oks"})
                 })
+            else res.status(404).send("No existe el user")
+        })
+
+    }
+});
+app.post('/calificar/:codigo',function (req, res) {
+    if (!db) {
+        initDb(function(err){});
+    }
+    if (db) {
+
+        var body=req.body;
+        var col = db.collection('tesis');
+        col.findOne({cod:req.params.codigo},function (err,data) {
+            if(data)
+                col.updateOne({cod:req.params.codigo},{$set:{calificacion:body}},function (err, data) {
+                    if (err)throw err;
+                    res.send({res:"oks"})
+                })
+            else res.status(404).send("No existe el user")
+        })
+
+    }
+});
+app.get('/asignarrevisor/:revisor/:codigo',function (req, res) {
+    if (!db) {
+        initDb(function(err){});
+    }
+    if (db) {
+
+        var col = db.collection('tesis');
+
+        col.findOne({cod:req.params.codigo},function (err,data) {
+            if(data)
+                col.updateOne({cod:req.params.codigo},{$set:{revisor:req.params.revisor}},function (err, data) {
+                    if (err)throw err;
+                    res.send({res:"oks"})
+                });
             else res.status(404).send("No existe el user")
         })
 
